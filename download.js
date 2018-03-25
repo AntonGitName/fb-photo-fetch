@@ -9,6 +9,13 @@ var touch = require('touch');
 
 var addExif = require('./add_exif');
 
+var resolution = function (x) {
+	return x.width * x.height;
+};
+var compare = function (a, b) {
+	return resolution(b) - resolution(a);
+};
+
 module.exports = function(albums, dest, photoSelector) {
 
   mkdirp.sync(dest);
@@ -33,8 +40,13 @@ module.exports = function(albums, dest, photoSelector) {
       var filePath = path.join(albumPath, photo.id + '.jpg');
 
 			fs.stat(filePath, function(stat_err, stats) {
-				if (stat_err) {
-					request((Array.isArray(photo.images) && photo.images.length > 0 && photo.images[0].source) || photo.source)
+				if (stat_err || stats.size < 100*1024 ) {
+					var link = photo.source;
+					if (Array.isArray(photo.images) && photo.images.length > 0) {
+						link = photo.images.sort(compare)[0].source;
+					}
+
+					request(link)
 						.on('response', function (response) {
 							streamToBuffer(response, function (err, buffer) {
 
